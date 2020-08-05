@@ -153,6 +153,7 @@ spec:
     - name: git-source
       type: git
   tasks:
+
     - name: build-mq
       taskRef:
         name: build-task
@@ -187,6 +188,7 @@ spec:
         inputs:
           - name: git-source
             resource: git-source
+
     - name: build-ace-int-server-ace-api
       taskRef:
         name: build-task
@@ -257,6 +259,7 @@ spec:
         inputs:
           - name: git-source
             resource: git-source
+
     - name: deploy-ace-int-server-ace-api
       runAfter:
         - build-ace-int-server-ace-api
@@ -329,6 +332,7 @@ spec:
         inputs:
           - name: git-source
             resource: git-source
+
     - name: api-test
       runAfter:
         - deploy-ace-int-server-ace-chris
@@ -345,6 +349,7 @@ spec:
         inputs:
           - name: git-source
             resource: git-source
+
     - name: image-push-to-test-ace-chris
       runAfter:
         - api-test
@@ -387,9 +392,9 @@ spec:
           value: "ace-api"
     - name: image-push-to-test-mq
       runAfter:
-        - image-push-to-test-ace-api
+        - api-test
       taskRef:
-        name: api-test
+        name: image-push-to-test
       params:
         - name: imageTag
           value: "latest"
