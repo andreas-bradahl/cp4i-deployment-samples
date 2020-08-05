@@ -26,10 +26,8 @@ echo "INFO: Namespace= ${namespace}"
 cd "$(dirname $0)"
 
 #creating new namespace for test/prod and adding namespace to sa
-oc create new-project ${namespace}-test
+oc create namespace ${namespace}-test
 oc adm policy add-scc-to-group privileged system:serviceaccounts:$namespace-test
-
-oc project ${namespace}
 
 echo "INFO: Installing tekton and its pre-reqs"
 oc apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.12.1/release.yaml
@@ -46,14 +44,15 @@ declare -a image_projects=("${namespace}" "${namespace}-test")
 echo "Creating secrets to push images to openshift local registry"
 for image_project in "${image_projects[@]}"
 do
+  echo "INFO: PROJECT IS $image_project"
   kubectl -n ${image_project} create serviceaccount image-bot
   oc -n ${image_project} policy add-role-to-user registry-editor system:serviceaccount:${image_project}:image-bot
 
   export password="$(oc -n ${image_project} serviceaccounts get-token image-bot)"
 
-  oc create -n $NAMESPACE secret docker-registry cicd-${image_project} \
-    --docker-server=$DOCKER_REGISTRY --docker-username=$username --docker-password=$password \
-    --dry-run -o yaml | oc apply -f -
+  oc create -n ${image_project} secret docker-registry cicd-${image_project} \
+    --docker-server=${DOCKER_REGISTRY} --docker-username=${username} --docker-password=${password} \
+    --dry-run=client -o yaml | oc apply -f -
 done
 
 # Creating a new secret as the type of entitlement key is 'kubernetes.io/dockerconfigjson' but we need secret of type 'kubernetes.io/basic-auth' to pull imags from the ER
@@ -143,19 +142,26 @@ done
 echo "Waiting for postgres to be ready"
 oc wait -n postgres --for=condition=available deploymentconfig --timeout=20m postgresql
 
-echo "Creating quotes table in postgres samepledb"
-oc exec -n postgres -it $(oc get pod -n postgres -l name=postgresql -o jsonpath='{.items[].metadata.name}') \
-  -- psql -U admin -d sampledb -c \
-'CREATE TABLE QUOTES (
-  QuoteID SERIAL PRIMARY KEY NOT NULL,
-  Name VARCHAR(100),
-  EMail VARCHAR(100),
-  Address VARCHAR(100),
-  USState VARCHAR(100),
-  LicensePlate VARCHAR(100),
-  ACMECost INTEGER,
-  ACMEDate DATE,
-  BernieCost INTEGER,
-  BernieDate DATE,
-  ChrisCost INTEGER,
-  ChrisDate DATE);'
+echo "INFO: Testing if postgres is already configured in the namespace ${namespace}"
+getRows=$(oc exec -n postgres -it $(oc get pod -n postgres -l name=postgresql -o jsonpath='{.items[].metadata.name}') -- psql -U admin -d sampledb -c "SELECT * FROM quotes;" | grep '0 rows')
+
+if [[ $? -ne 0 ]]; then
+  echo "Creating quotes table in postgres samepledb"
+  oc exec -n postgres -it $(oc get pod -n postgres -l name=postgresql -o jsonpath='{.items[].metadata.name}') \
+    -- psql -U admin -d sampledb -c \
+  'CREATE TABLE QUOTES (
+    QuoteID SERIAL PRIMARY KEY NOT NULL,
+    Name VARCHAR(100),
+    EMail VARCHAR(100),
+    Address VARCHAR(100),
+    USState VARCHAR(100),
+    LicensePlate VARCHAR(100),
+    ACMECost INTEGER,
+    ACMEDate DATE,
+    BernieCost INTEGER,
+    BernieDate DATE,
+    ChrisCost INTEGER,
+    ChrisDate DATE);'
+else
+  echo "INFO: Postgres table 'QUOTES' already exists"
+fi
