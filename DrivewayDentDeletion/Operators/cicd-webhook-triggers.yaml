@@ -46,7 +46,7 @@ spec:
       - name: git-source
         type: git
   steps:
-    - name: build
+    - name: build-step
       image: quay.io/buildah/stable:latest
       securityContext:
         runAsUser: 0
@@ -54,8 +54,25 @@ spec:
       command:
         - sh
         - -c
-        - "buildah --storage-driver vfs build-using-dockerfile -f /workspace/git-source/DrivewayDentDeletion/Operators/Dockerfiles/$(params.dockerfile) -t image-registry.openshift-image-registry.svc:5000/{{NAMESPACE}}/$(params.imageName):$(params.imageTag) /workspace/git-source/DrivewayDentDeletion/$(params.contextPath) && \
-           buildah --storage-driver vfs push --tls-verify=false image-registry.openshift-image-registry.svc:5000/{{NAMESPACE}}/$(params.imageName):$(params.imageTag)"
+        - "buildah --storage-driver vfs build-using-dockerfile -f /workspace/git-source/DrivewayDentDeletion/Operators/Dockerfiles/$(params.dockerfile) -t image-registry.openshift-image-registry.svc:5000/{{NAMESPACE}}/$(params.imageName):$(params.imageTag) /workspace/git-source/DrivewayDentDeletion/$(params.contextPath)"
+    - name: list-images-step
+      image: quay.io/buildah/stable:latest
+      securityContext:
+        runAsUser: 0
+        privileged: true
+      command:
+        - sh
+        - -c
+        - "buildah images -a"
+    - name: push-step
+      image: quay.io/buildah/stable:latest
+      securityContext:
+        runAsUser: 0
+        privileged: true
+      command:
+        - sh
+        - -c
+        - "buildah --storage-driver vfs push --tls-verify=false image-registry.openshift-image-registry.svc:5000/{{NAMESPACE}}/$(params.imageName):$(params.imageTag)"
 ---
 
 apiVersion: tekton.dev/v1beta1
@@ -182,22 +199,22 @@ spec:
     - name: git-source
       type: git
   tasks:
-    # - name: build-mq
-    #   taskRef:
-    #     name: build-task
-    #   params:
-    #     - name: imageName
-    #       value: "mq-ddd"
-    #     - name: imageTag
-    #       value: "latest"
-    #     - name: dockerfile
-    #       value: "MQ.Dockerfile"
-    #     - name: contextPath
-    #       value: ""
-    #   resources:
-    #     inputs:
-    #       - name: git-source
-    #         resource: git-source
+    - name: build-mq
+      taskRef:
+        name: build-task
+      params:
+        - name: imageName
+          value: "mq-ddd"
+        - name: imageTag
+          value: "latest"
+        - name: dockerfile
+          value: "MQ.Dockerfile"
+        - name: contextPath
+          value: ""
+      resources:
+        inputs:
+          - name: git-source
+            resource: git-source
     # - name: deploy-mq
     #   runAfter:
     #     - build-mq
@@ -414,17 +431,17 @@ spec:
     #       value: "$(params.imageTag)"
     #     - name: imageName
     #       value: "ace-api"
-    - name: image-push-to-test-mq
-      # runAfter:
-        # - build-mq
-        # - image-push-to-test-ace-api
-      taskRef:
-        name: image-push-to-test
-      params:
-        - name: imageTag
-          value: "latest"
-        - name: imageName
-          value: "mq-ddd"
+    # - name: image-push-to-test-mq
+    #   # runAfter:
+    #     # - build-mq
+    #     # - image-push-to-test-ace-api
+    #   taskRef:
+    #     name: image-push-to-test
+    #   params:
+    #     - name: imageTag
+    #       value: "latest"
+    #     - name: imageName
+    #       value: "mq-ddd"
 
 ---
 
