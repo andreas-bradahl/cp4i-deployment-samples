@@ -47,13 +47,13 @@ do
   echo "INFO: PROJECT IS $image_project"
   kubectl -n ${image_project} create serviceaccount image-bot
   oc -n ${image_project} policy add-role-to-user registry-editor system:serviceaccount:${image_project}:image-bot
-
-  export password="$(oc -n ${image_project} serviceaccounts get-token image-bot)"
-
-  oc create -n ${image_project} secret docker-registry cicd-${image_project} \
-    --docker-server=${DOCKER_REGISTRY} --docker-username=${username} --docker-password=${password} \
-    --dry-run=client -o yaml | oc apply -f -
 done
+
+export password="$(oc -n ${namespace} serviceaccounts get-token image-bot)"
+
+oc create -n ${namespace} secret docker-registry cicd-${image_project} \
+  --docker-server=${DOCKER_REGISTRY} --docker-username=${username} --docker-password=${password} \
+  --dry-run=client -o yaml | oc apply -f -
 
 # Creating a new secret as the type of entitlement key is 'kubernetes.io/dockerconfigjson' but we need secret of type 'kubernetes.io/basic-auth' to pull imags from the ER
 export ER_REGISTRY=$(oc get secret -n ${namespace} ibm-entitlement-key -o json | jq -r '.data.".dockerconfigjson"' | base64 --decode | jq -r '.auths' | jq 'keys[]' | tr -d '"')

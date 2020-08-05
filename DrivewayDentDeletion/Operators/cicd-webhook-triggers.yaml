@@ -151,6 +151,7 @@ spec:
       type: git
   tasks:
 
+    # MQ build
     - name: build-mq
       taskRef:
         name: build-task
@@ -167,6 +168,7 @@ spec:
         inputs:
           - name: git-source
             resource: git-source
+    # MQ deploy
     - name: deploy-mq
       runAfter:
         - build-mq
@@ -186,6 +188,7 @@ spec:
           - name: git-source
             resource: git-source
 
+    # build all ace
     - name: build-ace-int-server-ace-api
       taskRef:
         name: build-task
@@ -257,6 +260,7 @@ spec:
           - name: git-source
             resource: git-source
 
+    # deploy all ace
     - name: deploy-ace-int-server-ace-api
       runAfter:
         - build-ace-int-server-ace-api
@@ -330,6 +334,7 @@ spec:
           - name: git-source
             resource: git-source
 
+    # test end-to-end API
     - name: api-test
       runAfter:
         - deploy-ace-int-server-ace-chris
@@ -347,6 +352,7 @@ spec:
           - name: git-source
             resource: git-source
 
+    # push images to test namespace
     - name: image-push-to-test-ace-chris
       runAfter:
         - api-test
@@ -434,14 +440,6 @@ spec:
           serviceAccountName: cicd-ace-sa
         - taskName: deploy-ace-int-server-ace-bernie
           serviceAccountName: cicd-ace-sa
-        - taskName: image-push-to-test-ace-api
-          serviceAccountName: cicd-{{NAMESPACE}}-test-push-images
-        - taskName: image-push-to-test-ace-bernie
-          serviceAccountName: cicd-{{NAMESPACE}}-test-push-images
-        - taskName: image-push-to-test-ace-acme
-          serviceAccountName: cicd-{{NAMESPACE}}-test-push-images
-        - taskName: image-push-to-test-ace-chris
-          serviceAccountName: cicd-{{NAMESPACE}}-test-push-images
       resources:
       - name: git-source
         resourceRef:
