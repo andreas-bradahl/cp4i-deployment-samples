@@ -39,19 +39,12 @@ oc wait -n tekton-pipelines --for=condition=available deployment --timeout=20m t
 echo "Creating secrets to push images to openshift local registry"
 export DOCKER_REGISTRY="image-registry.openshift-image-registry.svc:5000"
 export username=image-bot
-declare -a image_projects=("${namespace}" "${namespace}-test")
-
-echo "Creating secrets to push images to openshift local registry"
-for image_project in "${image_projects[@]}"
-do
-  echo "INFO: PROJECT IS $image_project"
-  kubectl -n ${image_project} create serviceaccount image-bot
-  oc -n ${image_project} policy add-role-to-user registry-editor system:serviceaccount:${image_project}:image-bot
-done
-
+kubectl -n ${namespace} create serviceaccount image-bot
+oc -n ${namespace} policy add-role-to-user registry-editor system:serviceaccount:${namespace}:image-bot
 export password="$(oc -n ${namespace} serviceaccounts get-token image-bot)"
 
-oc create -n ${namespace} secret docker-registry cicd-${image_project} \
+echo "Creating secrets to push images to openshift local registry"
+oc create -n ${namespace} secret docker-registry cicd-${namespace} \
   --docker-server=${DOCKER_REGISTRY} --docker-username=${username} --docker-password=${password} \
   --dry-run=client -o yaml | oc apply -f -
 
