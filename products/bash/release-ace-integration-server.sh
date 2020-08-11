@@ -47,6 +47,10 @@ kind: IntegrationServer
 metadata:
   name: ${is_release_name}
   namespace: ${namespace}
+  annotations:
+    app.openshift.io/connects-to: mq-ddd-qm
+  labels:
+    app.kubernetes.io/part-of: Driveway-Dent-Deletion
 spec:
   pod:
    containers:
